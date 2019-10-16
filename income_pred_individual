@@ -1,0 +1,86 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Thu Oct 10 16:55:41 2019
+
+@author: divyanshumarwah
+"""
+
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+
+train_dataset = pd.read_csv('tcd ml 2019-20 income prediction training (with labels).csv')
+train_dataset= train_dataset.rename(index=str,columns={'Income in EUR':'Income'})
+test_dataset = pd.read_csv('tcd ml 2019-20 income prediction test (without labels).csv')
+
+dataset = pd.concat([train_dataset,test_dataset])
+
+dataset1 = dataset.drop(["Instance"],axis=1)
+
+age_mean = dataset1['Age'].mean()
+dataset1['Age'] = dataset1['Age'].replace(pd.np.nan,age_mean)
+
+year_mean = dataset1['Year of Record'].mean()
+dataset1['Year of Record'] = dataset1['Year of Record'].replace(pd.np.nan,year_mean)
+
+dataset1['University Degree'] = dataset1['University Degree'].replace('0','No')
+dataset1['Hair Color'] = dataset1['Hair Color'].replace('0','Unknown')
+dataset1['Gender'] = dataset1['Gender'].replace('0','other')
+dataset1['Gender'] = dataset1['Gender'].replace('#N/A','other')
+
+dataset1 = pd.get_dummies(dataset1,columns=['Gender'])
+dataset1 = pd.get_dummies(dataset1,columns=['Profession'])
+dataset1 = pd.get_dummies(dataset1,columns=['Country'])
+dataset1 = pd.get_dummies(dataset1,columns=['University Degree'])
+dataset1 = pd.get_dummies(dataset1,columns=['Hair Color'])
+
+train = dataset1[0:111994]
+train = train.dropna()
+Y=train.Income
+X=train.drop("Income",axis=1)
+
+from sklearn.model_selection import train_test_split
+X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size = 0.20, random_state = 0)
+
+#from sklearn.linear_model import LinearRegression
+#regressor = LinearRegression()
+#regressor.fit(X_train, y_train)
+
+#y_pred = regressor.predict(X_test)
+
+import xgboost
+
+import re
+regex = re.compile(r"\[|\]|<", re.IGNORECASE)
+X_train.columns = [regex.sub("_", col) if any(x in str(col) for x in set(('[', ']', '<'))) else col for col in X_train.columns.values]
+X_test.columns = [regex.sub("_", col) if any(x in str(col) for x in set(('[', ']', '<'))) else col for col in X_test.columns.values]
+
+test.columns = [regex.sub("_", col) if any(x in str(col) for x in set(('[', ']', '<'))) else col for col in test.columns.values]
+
+model = xgboost.XGBRegressor(colsample_bytree=0.4,
+                 gamma=0,                 
+                 learning_rate=0.07,
+                 max_depth=3,
+                 min_child_weight=1.5,
+                 n_estimators=10000,                                                                    
+                 reg_alpha=0.75,
+                 reg_lambda=0.45,
+                 subsample=0.6,
+                 seed=42) 
+
+model.fit(X_train,y_train)
+
+y_pred=model.predict(X_test)
+
+#from sklearn.metrics import mean_squared_error
+#from math import sqrt
+#rms = sqrt(mean_squared_error(y_test, y_pred))
+
+
+test = dataset1[111993:]
+test.isnull().sum()
+test = test.drop("Income",axis=1)
+#y1_pred = regressor.predict(test)
+
+y1_pred = model.predict(test)
